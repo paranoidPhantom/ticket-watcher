@@ -201,7 +201,7 @@ function setBotInstance(bot: any) {
 }
 
 async function startInfiniteLoop() {
-  console.log("Starting infinite scraping loop (3-second intervals)");
+  console.log("Starting infinite scraping loop (30-second intervals)");
 
   while (true) {
     const startTime = Date.now();
