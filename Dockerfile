@@ -49,11 +49,11 @@ WORKDIR /usr/src/app
 #     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 # Create a non-root user to run the app
-# RUN addgroup -g 1001 -S bun && \
-#     adduser -u 1001 -S bun -G bun
+RUN addgroup -g 1001 -S bun && \
+    adduser -u 1001 -S bun -G bun
 
 # Copy built application
-COPY --from=build /usr/src/app .
+COPY --from=build --chown=bun:bun /usr/src/app .
 
 # Switch to non-root user
 USER bun
