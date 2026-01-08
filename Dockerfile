@@ -9,7 +9,7 @@ WORKDIR /usr/src/app
 # This will cache them and speed up future builds
 FROM base AS deps
 RUN --mount=type=bind,source=package.json,target=package.json \
-    --mount=type=bind,source=bun.lockb,target=bun.lockb \
+    --mount=type=bind,source=bun.lock,target=bun.lock \
     --mount=type=cache,target=/root/.bun/install/cache \
     bun install --frozen-lockfile
 
