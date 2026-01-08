@@ -77,7 +77,6 @@ async function scrapePage() {
     // Set a reasonable viewport
     await page.setViewport({ width: 1280, height: 800 });
 
-    console.log(`Loading page from ${URL.substring(0, 50)}...`);
     await page.goto(URL, { waitUntil: 'networkidle0' });
     
     // Wait an extra second as requested
@@ -86,7 +85,7 @@ async function scrapePage() {
     // Try to find all list item elements
     try {
       const currentSelector = userDb.getSelector();
-      console.log(`Using selector: ${currentSelector}`);
+      // Using selector
 
       await page.waitForSelector(currentSelector, { timeout: 5000 });
       const elements = await page.$$(currentSelector);
@@ -98,10 +97,7 @@ async function scrapePage() {
           })
         );
 
-        console.warn(`Found ${texts.length} items:`);
-        texts.forEach((text, index) => {
-          console.warn(`  ${index + 1}: ${text}`);
-        });
+        // Items found
 
         // Compare with previous data
         const previousData = userDb.getLatestScrapedData();
@@ -162,19 +158,14 @@ async function scrapePage() {
 
           // Return result with change description
           result.changeMessage = changeMessage.trim();
-        } else {
-          // No changes, just return result
-          console.warn("No changes detected.");
         }
 
         await page.close();
         return result;
       } else {
-        console.warn(`No items found with selector: ${currentSelector}`);
         return { texts: [], timestamp: Date.now(), changed: false };
       }
     } catch (error) {
-      console.warn(`Selector not found within timeout: ${error.message}`);
       // Optional: Take screenshot for debugging
       // await page.screenshot({ path: 'debug.png' });
       return { texts: [], timestamp: Date.now(), changed: false };
@@ -183,7 +174,6 @@ async function scrapePage() {
     await page.close();
 
   } catch (error) {
-    console.error("Error during scraping:", error);
     // Clean up browser instance on any error
     if (browser && browser.isConnected()) {
       await cleanupBrowser();
@@ -222,7 +212,7 @@ async function startInfiniteLoop() {
     if (result.changed && 'changeMessage' in result && botInstance) {
       try {
         const users = userDb.getAllUsers();
-        console.log(`Notifying ${users.length} users about changes`);
+        // Notifying users about changes
 
         for (const user of users) {
           try {
@@ -231,23 +221,23 @@ async function startInfiniteLoop() {
               text: result.changeMessage,
               parse_mode: "Markdown"
             });
-            console.log(`Notified user ${user.telegram_id} (${user.first_name || 'unknown'})`);
+            // User notified
           } catch (error) {
             console.error(`Failed to notify user ${user.telegram_id}:`, error);
             // Continue with other users even if one fails
           }
         }
 
-        console.log(`Successfully notified ${users.length} users`);
+        // Successfully notified users
       } catch (error) {
         console.error("Error notifying users:", error);
       }
     }
 
     const elapsed = Date.now() - startTime;
-    const waitTime = Math.max(0, 3000 - elapsed);
+    const waitTime = Math.max(0, 30000 - elapsed);
 
-    console.log(`Scrape completed in ${elapsed}ms. Next scrape in ${waitTime}ms.`);
+    // Scrape completed
 
     await new Promise(resolve => setTimeout(resolve, waitTime));
   }
