@@ -35,25 +35,25 @@ FROM base
 WORKDIR /usr/src/app
 
 # Install chromium for puppeteer
-RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    harfbuzz \
-    ca-certificates \
-    ttf-freefont \
-    font-noto-emoji
+# RUN apk add --no-cache \
+#     chromium \
+#     nss \
+#     freetype \
+#     harfbuzz \
+#     ca-certificates \
+#     ttf-freefont \
+#     font-noto-emoji
 
 # Tell Puppeteer to skip installing Chrome. We'll be using the installed package.
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+# ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+#     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 # Create a non-root user to run the app
-RUN addgroup -g 1001 -S bun && \
-    adduser -u 1001 -S bun -G bun
+# RUN addgroup -g 1001 -S bun && \
+#     adduser -u 1001 -S bun -G bun
 
 # Copy built application
-COPY --from=build --chown=bun:bun /usr/src/app .
+COPY --from=build /usr/src/app .
 
 # Switch to non-root user
 USER bun
