@@ -10,6 +10,7 @@ services:
       - BOT_TOKEN=${BOT_TOKEN}
       - BOT_ADMIN_ID=${BOT_ADMIN_ID}
       - SCRAPE_URL=${SCRAPE_URL}
+      - DATA_DIR=/usr/src/app/data
     volumes:
       # Mount a volume for the SQLite database to persist data
       - ticket-data:/usr/src/app/data

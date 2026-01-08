@@ -26,34 +26,35 @@ COPY --from=deps /usr/src/app/node_modules ./node_modules
 # Copy application code
 COPY . .
 
-# Build the application
-# (Note: This project doesn't have a build step, but keeping the stage for consistency)
-RUN bun run --production --silent
-
 # Final stage
 FROM base
 WORKDIR /usr/src/app
-
-# Install chromium for puppeteer
-# RUN apk add --no-cache \
-#     chromium \
-#     nss \
-#     freetype \
-#     harfbuzz \
-#     ca-certificates \
-#     ttf-freefont \
-#     font-noto-emoji
-
-# Tell Puppeteer to skip installing Chrome. We'll be using the installed package.
-# ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-#     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 # Create a non-root user to run the app
 RUN addgroup -g 1001 -S appuser && \
     adduser -u 1001 -S appuser -G appuser
 
+# Install Chrome dependencies for Puppeteer
+USER root
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    freetype-dev \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
+
+# Set Puppeteer environment variables
+ENV PUPPETEER_SKIP_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
 # Copy built application
-COPY --from=build --chown=appuser:appuser /usr/src/app .
+COPY --from=build /usr/src/app .
+RUN chown -R appuser:appuser /usr/src/app
+
+# Create data directory as root
+RUN mkdir -p /usr/src/app/data && chown -R appuser:appuser /usr/src/app/data
 
 # Switch to non-root user
 USER appuser

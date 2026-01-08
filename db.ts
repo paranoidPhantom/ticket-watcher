@@ -1,9 +1,55 @@
 import { Database } from "bun:sqlite";
 
 // Use data directory for persistent storage in Docker
-const dataDir = process.env.DATA_DIR || ".";
+const dataDir = process.env.DATA_DIR || '.';
 const dbPath = `${dataDir}/bot_users.sqlite`;
-const db = new Database(dbPath, { create: true });
+
+// Debug: Log environment info
+console.log(`DATA_DIR: ${dataDir}`);
+console.log(`dbPath: ${dbPath}`);
+console.log(`CWD: ${process.cwd()}`);
+
+// First ensure directory exists with proper permissions
+import { mkdirSync, existsSync, accessSync, constants } from 'fs';
+
+if (!existsSync(dataDir)) {
+  try {
+    mkdirSync(dataDir, { recursive: true, mode: 0o755 });
+    console.log(`Created directory: ${dataDir}`);
+  } catch (error) {
+    console.error(`Failed to create directory ${dataDir}:`, error);
+  }
+}
+
+// Check permissions
+if (existsSync(dataDir)) {
+  try {
+    accessSync(dataDir, constants.R_OK | constants.W_OK | constants.X_OK);
+    console.log(`Directory ${dataDir} has RWX permissions`);
+  } catch (error) {
+    console.error(`Directory ${dataDir} lacks permissions:`, error);
+  }
+}
+
+// Try to open database
+let db: Database;
+try {
+  console.log(`Attempting to open database at: ${dbPath}`);
+  db = new Database(dbPath, { create: true });
+  console.log(`Database opened successfully at: ${dbPath}`);
+} catch (error) {
+  console.error(`Failed to open database at ${dbPath}:`, error);
+
+  // Try in-memory database as fallback
+  console.log(`Trying in-memory database as fallback`);
+  try {
+    db = new Database(':memory:');
+    console.log(`Using in-memory database (data will not persist across restarts)`);
+  } catch (memoryError) {
+    console.error(`Failed to create in-memory database:`, memoryError);
+    throw memoryError;
+  }
+}
 
 // Enable WAL mode for better concurrency
 db.run("PRAGMA journal_mode = WAL;");
