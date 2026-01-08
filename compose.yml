@@ -1,0 +1,19 @@
+services:
+  ticket-watcher:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ticket-watcher
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - BOT_TOKEN=${BOT_TOKEN}
+      - BOT_ADMIN_ID=${BOT_ADMIN_ID}
+      - SCRAPE_URL=${SCRAPE_URL}
+    volumes:
+      # Mount a volume for the SQLite database to persist data
+      - ticket-data:/usr/src/app/data
+
+volumes:
+  ticket-data:
+    driver: local
