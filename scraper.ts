@@ -12,14 +12,65 @@ type ScrapeResult = {
 const DEFAULT_URL = "https://widget.kassir.ru/?type=A&key=0d043285-33ff-bbbb-d1f0-4d379a98d494&domain=spb.kassir.ru&id=187697";
 const URL = process.env.SCRAPE_URL || DEFAULT_URL;
 
-async function scrapePage() {
-  let browser;
+// Keep browser instance persistent
+let browser: puppeteer.Browser | null = null;
+let browserLaunchPromise: Promise<puppeteer.Browser> | null = null;
+
+async function getBrowser(): Promise<puppeteer.Browser> {
+  if (browser && browser.isConnected()) {
+    return browser;
+  }
+
+  if (browserLaunchPromise) {
+    return browserLaunchPromise;
+  }
+
+  browserLaunchPromise = puppeteer.launch({
+    headless: 'new',
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process',
+      '--disable-software-rasterizer',
+      '--disable-background-networking',
+      '--disable-default-apps',
+      '--disable-background-timer-throttling',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-breakpad',
+      '--disable-component-extensions-with-background-pages',
+      '--disable-extensions',
+      '--disable-features=TranslateUI',
+      '--disable-ipc-flooding-protection',
+      '--disable-renderer-backgrounding',
+      '--disable-sync'
+    ]
+  });
+
   try {
-    browser = await puppeteer.launch({
-      headless: true,
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--disable-setuid-sandbox', '--no-first-run', '--no-zygote', '--single-process']
-    });
+    browser = await browserLaunchPromise;
+  } finally {
+    browserLaunchPromise = null;
+  }
+
+  return browser;
+}
+
+async function cleanupBrowser() {
+  if (browser) {
+    await browser.close();
+    browser = null;
+  }
+}
+
+async function scrapePage() {
+  let browser: puppeteer.Browser;
+  try {
+    browser = await getBrowser();
 
     const page = await browser.newPage();
 
@@ -110,15 +161,14 @@ async function scrapePage() {
           userDb.saveScrapedData(currentData);
 
           // Return result with change description
-          return {
-            ...result,
-            changeMessage: changeMessage.trim()
-          };
+          result.changeMessage = changeMessage.trim();
         } else {
           // No changes, just return result
           console.warn("No changes detected.");
-          return result;
         }
+
+        await page.close();
+        return result;
       } else {
         console.warn(`No items found with selector: ${currentSelector}`);
         return { texts: [], timestamp: Date.now(), changed: false };
@@ -134,15 +184,27 @@ async function scrapePage() {
 
   } catch (error) {
     console.error("Error during scraping:", error);
-    return { texts: [], timestamp: Date.now(), changed: false };
-  } finally {
-    if (browser) {
-      await browser.close();
+    // Clean up browser instance on any error
+    if (browser && browser.isConnected()) {
+      await cleanupBrowser();
     }
+    return { texts: [], timestamp: Date.now(), changed: false };
   }
 }
 
 let botInstance: any = null;
+
+process.on('SIGTERM', async () => {
+  console.log('Received SIGTERM, cleaning up...');
+  await cleanupBrowser();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('Received SIGINT, cleaning up...');
+  await cleanupBrowser();
+  process.exit(0);
+});
 
 function setBotInstance(bot: any) {
   botInstance = bot;
